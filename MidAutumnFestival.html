@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>廣寒考試院 - 中秋節知識互動問答</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 50%, #2a0808 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* 隨機背景漂浮圖示動畫 */
+        @keyframes floatRandom {
+            0% {
+                transform: translateY(0px) rotate(0deg) scale(1);
+            }
+            50% {
+                transform: translateY(-25px) rotate(10deg) scale(1.05);
+            }
+            100% {
+                transform: translateY(0px) rotate(0deg) scale(1);
+            }
+        }
+        .bg-floating-icon {
+            position: absolute;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+            opacity: 0.25;
+            transition: all 0.5s ease;
+            animation: floatRandom 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 min-h-screen text-slate-800 relative">
+
+    <!-- 動態隨機背景元素容器 -->
+    <div id="floating-bg-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+    <!-- 主容器 -->
+    <div class="w-full max-w-2xl relative z-10 my-8">
+        
+        <!-- 開始畫面 -->
+        <div id="start-card" class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl text-center border border-red-200/20 relative overflow-hidden">
+            <div class="relative z-10 py-4">
+                <div class="inline-block bg-amber-100 text-amber-900 text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                    🥮 應景節慶挑戰
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-red-950 mb-4">廣寒考試院</h1>
+                <p class="text-slate-600 mb-8 max-w-md mx-auto">
+                    考考你對中秋節的習俗、傳說、美食與典故了解多少！共 20 題，點選答案後會**手動顯示正確答案與詳細說明**。
+                </p>
+                <button onclick="startQuiz()" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold rounded-xl shadow-lg hover:from-red-700 hover:to-amber-700 transition duration-200">
+                    開始測驗 <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 測驗畫面 -->
+        <div id="quiz-card" class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl border border-red-200/20 hidden">
+            <!-- 進度條與資訊 -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center text-sm font-semibold text-slate-500 mb-2">
+                    <span id="question-progress">問題 1 / 20</span>
+                    <span id="score-display" class="text-red-700">得分: 0</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div id="progress-bar" class="bg-red-600 h-2.5 rounded-full transition-all duration-300" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <!-- 問題區域 -->
+            <div class="mb-6">
+                <h2 id="question-text" class="text-xl md:text-2xl font-bold text-slate-800 leading-snug">
+                    題目載入中...
+                </h2>
+            </div>
+
+            <!-- 選項區域 -->
+            <div id="options-container" class="space-y-3 mb-6">
+                <!-- 選項由 JS 動態產生 -->
+            </div>
+
+            <!-- 即時解析區域 -->
+            <div id="explanation-box" class="hidden p-4 rounded-xl mb-6 transition-all duration-300">
+                <div class="font-bold mb-1 flex items-center text-base" id="explanation-title"></div>
+                <div id="explanation-text" class="text-sm mt-2 leading-relaxed"></div>
+            </div>
+
+            <!-- 下一題按鈕 -->
+            <div class="flex justify-end">
+                <button id="next-btn" onclick="nextQuestion()" class="hidden px-6 py-2.5 bg-red-900 text-white font-semibold rounded-xl hover:bg-red-800 transition">
+                    下一題 <i class="fas fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 結果畫面 -->
+        <div id="result-card" class="glass-card rounded-2xl p-8 shadow-2xl text-center border border-red-200/20 hidden">
+            <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 text-3xl">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">測驗完成！</h2>
+            <p class="text-slate-600 mb-6">您在中秋知識大挑戰中的最終成績：</p>
+
+            <div class="bg-slate-50 rounded-xl p-6 mb-8 border border-slate-100 max-w-sm mx-auto">
+                <div class="text-5xl font-black text-red-600 mb-2" id="final-score">0</div>
+                <p class="text-sm text-slate-500 font-medium" id="score-comment">答對 0 / 20 題</p>
+            </div>
+
+            <button onclick="restartQuiz()" class="px-8 py-3 bg-red-900 text-white font-bold rounded-xl shadow-lg hover:bg-red-800 transition">
+                <i class="fas fa-redo-alt mr-2"></i> 再挑戰一次
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // 隨機生成月餅、玉兔、嫦娥圖示放置於背景
+        const bgIcons = [
+            '🥮', '🐇', '💃', '🌕', '🏮', '🥮', '🐇', '🥮'
+        ];
+
+        function generateRandomBackground() {
+            const container = document.getElementById('floating-bg-container');
+            container.innerHTML = '';
+            const count = 14;
+
+            for (let i = 0; i < count; i++) {
+                const span = document.createElement('span');
+                const randomIcon = bgIcons[Math.floor(Math.random() * bgIcons.length)];
+                span.innerText = randomIcon;
+                span.className = 'bg-floating-icon text-3xl md:text-5xl';
+                
+                span.style.left = `${Math.random() * 90 + 5}%`;
+                span.style.top = `${Math.random() * 90 + 5}%`;
+                
+                const duration = Math.random() * 4 + 4;
+                const delay = Math.random() * 3;
+                span.style.animationDuration = `${duration}s`;
+                span.style.animationDelay = `${delay}s`;
+                
+                container.appendChild(span);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', generateRandomBackground);
+
+        const questions = [
+            {
+                q: "1. 中秋節在農曆的哪一天？",
+                options: ["八月十五", "七月十五", "九月十五"],
+                answer: 0,
+                desc: "農曆八月十五日為中秋節，此時正好處於秋季三個月的中間，因此也被稱為「仲秋」。"
+            },
+            {
+                q: "2. 傳說中嫦娥吞下了什麼東西才飛上月球？",
+                options: ["仙丹", "不老長生藥", "忘情水"],
+                answer: 1,
+                desc: "相傳后羿向西王母求得不老長生藥，嫦娥為了保護長生藥不被壞人搶走而將其吞下，隨後身體變輕飛上了月球。"
+            },
+            {
+                q: "3. 下列哪一個不是傳說中住在月宮裡的「月宮住戶」？",
+                options: ["吳剛", "玉兔", "后羿"],
+                answer: 2,
+                desc: "后羿留在人間並未飛升；傳說中住在月宮裡的是嫦娥、伐桂樹的「吳剛」以及搗藥的「玉兔」。"
+            },
+            {
+                q: "4. 中秋節之所以有吃「柚子」的習俗，主要是取其諧音象徵什麼吉祥含意？",
+                options: ["「佑子」（保佑子孫平安）", "「有子」（祝福早生貴子）", "「悠哉」（象徵生活無憂無慮）"],
+                answer: 0,
+                desc: "「柚子」與「佑子」諧音相同，象徵神明與祖先保佑子孫平安健康。"
+            },
+            {
+                q: "5. 台灣中秋節流行「烤肉」的習慣，最初主要是因為哪一家醬油廠商的廣告效應帶動？",
+                options: ["金蘭醬油", "萬家香醬油", "味全醬油"],
+                answer: 1,
+                desc: "1980年代「萬家香醬油」推出了紅極一時的廣告口號「一家烤肉萬家香」，隨後金蘭醬油等廠商也跟進促銷，逐漸帶動了台灣中秋節全民烤肉的風氣。"
+            },
+            {
+                q: "6. 台灣中秋節常吃的「文旦」，名字由來傳說是紀念清朝哪一位特別喜歡吃柚子的官員或地方名士？",
+                options: ["彰化一位姓「文」的旦角（戲曲演員）", "麻豆一位姓「文」的知縣", "乾隆皇帝身邊的「文」姓太醫"],
+                answer: 0,
+                desc: "傳統傳説文旦最早由一位姓文的戲曲旦角（戲曲演員）親自培植，果實清甜多汁，鄉里為了紀念他而稱為「文旦」。"
+            },
+            {
+                q: "7. 經典元宵或中秋點心「蛋黃酥」，裡面包的咸蛋黃通常是用哪種蛋製作的？",
+                options: ["雞蛋", "鴨蛋", "鵝蛋"],
+                answer: 1,
+                desc: "蛋黃酥製作時通常採用醃製的「鹹鴨蛋」蛋黃，因為鴨蛋黃油脂豐富、香氣濃郁，烘烤後口感較好。"
+            },
+            {
+                q: "8. 傳說中元朝末年，漢人利用月餅傳遞訊息起義，月餅裡面藏了什麼字條？",
+                options: ["八月十五殺韃子", "今晚吃烤肉", "嫦娥奔月成功"],
+                answer: 0,
+                desc: "民間傳說朱元璋與劉伯溫為了約定起義時間，將寫有「八月十五殺韃子」的字條藏於月餅內分發，藉此傳達秘密起義訊號。"
+            },
+            {
+                q: "9. 古人說的「彩雲追月」或中秋賞月，月亮呈現最圓狀態時，通常落在農曆哪一天？",
+                options: ["八月十五", "八月十六", "八月一號"],
+                answer: 1,
+                desc: "因為月球繞地球公轉軌道非完美正圓，受引力影響速度不一，滿月時刻常落在農曆十六日，因此有「十五的月亮十六圓」這句俗諺。"
+            },
+            {
+                q: "10. 天文學上，如果中秋節當天剛好遇到月球距離地球最近的滿月，這種現象被稱作什麼？",
+                options: ["無敵大月亮", "超級月亮", "終極月亮"],
+                answer: 1,
+                desc: "當滿月剛好發生在月球運行至「近地點」附近時，月亮看起來會比平時更大更亮，天文學上稱之為「超級月亮」（Supermoon）。"
+            },
+            {
+                q: "11. 下列哪一首古詩詞寫下了「人有悲歡離合，月有陰晴圓缺」的名句？",
+                options: ["李白《靜夜思》", "蘇軾《水調歌頭》", "杜甫《望岳》"],
+                answer: 1,
+                desc: "出自宋代蘇軾的《水調歌頭·明月幾時有》，全句為「人有悲歡離合，月有陰晴圓缺，此事古難全。但願人長久，千里共嬋娟。」"
+            },
+            {
+                q: "12. 在中秋節習俗中，拜月亮通常是在什麼時間點進行？",
+                options: ["中午太陽最大時", "傍晚月亮升起後", "清晨破曉時"],
+                answer: 1,
+                desc: "傳統拜月（祭月）習俗是在傍晚月亮升起之後設置案桌，擺放月餅與水果進行祭拜。"
+            },
+            {
+                q: "13. 下列哪一種水果不是台灣常見的中秋節盛產節慶水果？",
+                options: ["柚子", "楊桃", "西瓜"],
+                answer: 2,
+                desc: "柚子（文旦）與楊桃盛產於秋季，是傳統中秋盛產水果；西瓜主要盛產於夏季。"
+            },
+            {
+                q: "14. 台灣文旦柚的主要採收期通常落在什麼節氣前後，剛好能趕上中秋節？",
+                options: ["白露", "立秋", "大暑"],
+                answer: 0,
+                desc: "台灣傳統有「白露採柚」的說法，白露通常在 9 月 7 日至 9 日之間，採收後經過「消水」熟成正好適合中秋享用。"
+            },
+            {
+                q: "15. 下列哪一個不是港式傳統月餅的常見口味？",
+                options: ["蓮蓉雙黃", "伍仁", "草莓大福"],
+                answer: 2,
+                desc: "蓮蓉雙黃與伍仁（多種果仁）均為傳統港式/廣式月餅的經典代表；「草莓大福」則是日式麻糬甜點。"
+            },
+            {
+                q: "16. 「嫦娥奔月」的故事中，嫦娥的丈夫是哪一位射下九個太陽的大英雄？",
+                options: ["夸父", "后羿", "大禹"],
+                answer: 1,
+                desc: "傳說古代天空出現十個太陽曬焦大地，大英雄「后羿」拉弓射下了九個太陽，造福人間。"
+            },
+            {
+                q: "17. 傳說「月餅」原本叫「胡餅」，是因為哪一位歷史名人賞月時覺得名字不好聽，才將它改名為「月餅」？",
+                options: ["楊貴妃", "武則天", "西施"],
+                answer: 0,
+                desc: "相傳唐玄宗與楊貴妃中秋賞月吃胡餅時，楊貴妃抬頭看見明月，覺得「胡餅」名稱不夠雅致，便隨口改稱為「月餅」。"
+            },
+            {
+                q: "18. 請問「廣式月餅」外皮通常呈現金黃柔軟，主要是在餅皮中加了什麼？",
+                options: ["糖漿與鹼水", "起司與奶油", "巧克力醬"],
+                answer: 0,
+                desc: "廣式月餅餅皮加入「轉化糖漿」與「鹼水」，能使餅皮回油後質地柔軟、色澤呈現漂亮的金黃琥珀色。"
+            },
+            {
+                q: "19. 挑選中秋文旦時常聽到的「老欉」，通常是指樹齡多久以上的文旦樹？",
+                options: ["20 年以上", "5 年以上", "100 年以上"],
+                answer: 0,
+                desc: "文旦樹齡若達到 20 年以上即可稱為「老欉」。老欉樹勢穩定，吸收養分均勻，產出的柚子果肉更為細緻甘甜。"
+            },
+            {
+                q: "20. 中秋節因為正好處於秋季的三個月中間，且這一天的月亮特別圓，所以在古代又被稱作什麼？",
+                options: ["仲秋節", "季秋節", "初秋節"],
+                answer: 0,
+                desc: "古代將秋季的三個月依序稱為孟秋、仲秋、季秋，八月正好處於仲秋之月，故中秋節亦稱「仲秋節」。"
+            }
+        ];
+
+        let currentIdx = 0;
+        let score = 0;
+        let answered = false;
+
+        function startQuiz() {
+            document.getElementById('start-card').classList.add('hidden');
+            document.getElementById('quiz-card').classList.remove('hidden');
+            currentIdx = 0;
+            score = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            const q = questions[currentIdx];
+            
+            document.getElementById('question-progress').innerText = `問題 ${currentIdx + 1} / ${questions.length}`;
+            document.getElementById('score-display').innerText = `得分: ${score}`;
+            document.getElementById('progress-bar').style.width = `${((currentIdx + 1) / questions.length) * 100}%`;
+            
+            const expBox = document.getElementById('explanation-box');
+            expBox.classList.add('hidden');
+            expBox.className = "hidden p-4 rounded-xl mb-6 transition-all duration-300";
+            
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('question-text').innerText = q.q;
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            const prefixes = ["A", "B", "C"];
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl border-2 border-slate-200 hover:border-red-500 hover:bg-red-50/50 transition flex items-center font-medium text-slate-700 focus:outline-none";
+                btn.onclick = () => selectOption(idx);
+                btn.id = `opt-${idx}`;
+                
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 font-bold flex items-center justify-center mr-3 shrink-0 tag-prefix">${prefixes[idx]}</span>
+                    <span>${opt}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIdx) {
+            if (answered) return;
+            answered = true;
+
+            const q = questions[currentIdx];
+            const isCorrect = selectedIdx === q.answer;
+            const prefixes = ["A", "B", "C"];
+
+            if (isCorrect) {
+                score += 5;
+                document.getElementById('score-display').innerText = `得分: ${score}`;
+            }
+
+            q.options.forEach((_, idx) => {
+                const btn = document.getElementById(`opt-${idx}`);
+                btn.disabled = true;
+                btn.classList.remove('hover:border-red-500', 'hover:bg-red-50/50');
+
+                if (idx === q.answer) {
+                    btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900');
+                    btn.querySelector('.tag-prefix').classList.add('bg-emerald-500', 'text-white');
+                    btn.querySelector('.tag-prefix').classList.remove('bg-slate-100', 'text-slate-600');
+                } else if (idx === selectedIdx && !isCorrect) {
+                    btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-900');
+                    btn.querySelector('.tag-prefix').classList.add('bg-rose-500', 'text-white');
+                    btn.querySelector('.tag-prefix').classList.remove('bg-slate-100', 'text-slate-600');
+                } else {
+                    btn.classList.add('opacity-40');
+                }
+            });
+
+            const expBox = document.getElementById('explanation-box');
+            const expTitle = document.getElementById('explanation-title');
+            const expText = document.getElementById('explanation-text');
+
+            if (isCorrect) {
+                expBox.className = "p-4 rounded-xl mb-6 bg-emerald-50 border border-emerald-200 text-emerald-950 block";
+                expTitle.innerHTML = `<i class="fas fa-check-circle text-emerald-600 mr-2"></i> 回答正確！`;
+            } else {
+                expBox.className = "p-4 rounded-xl mb-6 bg-rose-50 border border-rose-200 text-rose-950 block";
+                expTitle.innerHTML = `<i class="fas fa-times-circle text-rose-600 mr-2"></i> 回答錯誤！正確答案是：(${prefixes[q.answer]}) ${q.options[q.answer]}`;
+            }
+
+            expText.innerHTML = `<span class="font-bold">【答案說明】</span>${q.desc}`;
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < questions.length) {
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('quiz-card').classList.add('hidden');
+            document.getElementById('result-card').classList.remove('hidden');
+
+            document.getElementById('final-score').innerText = score;
+            const correctCount = score / 5;
+            
+            let comment = "";
+            if (score === 100) {
+                comment = "太厲害了！你簡直是廣寒宮知識王 🌕";
+            } else if (score >= 80) {
+                comment = `答對 ${correctCount} / 20 題，表現非常優異！`;
+            } else if (score >= 60) {
+                comment = `答對 ${correctCount} / 20 題，及格囉！對中秋習俗蠻了解的。`;
+            } else {
+                comment = `答對 ${correctCount} / 20 題，再接再厲，邊吃月餅邊複習吧！`;
+            }
+            document.getElementById('score-comment').innerText = comment;
+        }
+
+        function restartQuiz() {
+            document.getElementById('result-card').classList.add('hidden');
+            generateRandomBackground();
+            startQuiz();
+        }
+    </script>
+</body>
+</html>
